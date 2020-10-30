@@ -1,170 +1,162 @@
-#ifndef HEAP_SORT_H
-#define HEAP_SORT_H
-
-#include "utils.h"
-#include "assert.h"
-#include <iostream>
+﻿​
+#ifndef max_pq_heap_h
+#define max_pq_heap_h
+​
 #include "array.h"
-
-
-template <typename T>
-class heap_sort {
+​
+#define min_capacity 3
+​
+//------------------------------------------------------
+template <typename t>
+class max_pq_heap {
 public:
-    static void sort(T* pq, int n, const comparator<T>& comp = fwd_comparator<T>()) {
-       
-        // heapify phase
-        for (int k = n / 2; k >= 1; k--)
-            sink(pq, k, n, comp);
-
-        // sortdown phase
-        int k = n;
-        while (k > 1) {
-            exchange(pq, 1, k--);
-            sink(pq, 1, k, comp);
+    max_pq_heap() : max_pq_heap(min_capacity_) { }
+    max_pq_heap(const comparator<t>& compar) : max_pq_heap(min_capacity, compar) { }
+    max_pq_heap(size_t capacity, const comparator<t>& compar)
+        : pq_(capacity + 1), comp(compar) {
+        pq_.push_back(t());
+    }  // make space for skipped-over 0 entry
+    ​
+        max_pq_heap(const std::initializer_list<t>& li, const comparator<t>& compar)
+        : max_pq_heap(li.size() + 1, compar) {
+        for (const t& el : li) {
+            if (el != "-") {
+                insert(el);
+            }
+            else { std::cout << del_max() << " "; }
         }
+        std::cout << "\t(" << size() << " left on the heap)\n\n";
     }
-
-private:
-    static void sink(T* pq, int k, int n, const comparator<T>& comp) {
-        while (2 * k <= n) {
-            int j = 2 * k;
-            if (j < n && less(pq, j, j + 1, comp)) j++;
-            if (!less(pq, k, j, comp)) break;
-            exchange(pq, k, j);
-            k = j;
+    ~max_pq_heap() {
+        //    std::cout << "destroying the max_pq_heap...\n";
+    }
+    ​
+        t max() const {
+        if (empty()) { throw new std::underflow_error("no such element\n"); }
+        return pq_[1];
+    }
+    ​
+        bool empty() const { return pq_.size() == 1; }   // leaves 0 index empty
+    size_t size() const { return pq_.size() - 1; }   // ditto
+    ​
+        // void resize(size_t capacity)     // handled by array_ class
+        ​
+        void clear() {
+        std::cout << "clearing max_pq_heap...\n";
+        while (!empty()) {
+            del_max();
         }
+        std::cout << *this << "\n";
     }
-    static bool less(T* pq, int i, int j, const comparator<T>& comp) {
-        return compare(pq[i - 1], pq[j - 1], comp) < 0;
+    ​
+        void insert(const t& value) {
+        pq_.push_back(value);
+        //    std::cout << "in insert, pq is: " << pq_ << "\n";
+        swim(size());
     }
-
-    static void exchange(T* pq, int i, int j) {
-        T swap = pq[i - 1];
-        pq[i - 1] = pq[j - 1];
-        pq[j - 1] = swap;
-    }
-
-};
-
-template <typename T>
-class MaxPQ {
-public:
-    
-    MaxPQ() : MaxPQ(MIN_CAPACITY_) {}
-
-    MaxPQ(size_t cap) : pq(cap) {
-        pq.push_back(NULL);
-    }
-
-    MaxPQ(T* keys) {
-        pq.size() = keys.size();
-        pq = new T[keys.size() - 1];
-        for (int i = 0; i < n; i++) {
-            pq[i + 1] = keys[i];
-        }
-        for (int k = n / 2; k >= 1; k--) {
-            sink(k);
-        }
-        //assert isMaxHeap();
-    }
-
-    bool isEmpty() {
-        return n == 0;
-    }
-
-    int size() {
-        return n;
-    }
-
-    T max() {
-        if (isEmpty()) std::cout << "Priority queue underflow\n";
-        return pq[1];
-    }
-    // was private
-    void insert(const T& x, int noe) {
-        if (n == noe-1) resize(2 * noe);
-
-        pq[++n] = x;
-        swim(n);
-        //assert isMaxHeap();
-    }
-    T delMax(int noe) {
-        if (isEmpty()) std::cout << "Priority queue underflow";
-        T max = pq[1];
-        exchange(1, n--);
+    t del_max() {
+        t maximum = pq_[1];
+        size_t n = size();
+        ​
+            exchange(1, n);
+        pq_.pop_back();
         sink(1);
-        pq[n + 1] = 0;
-        if ((n > 0) && (n == noe - 1) / 4) resize(noe);
-        //assert isMaxHeap();
-        return max;
+        pq_[n] = t();
+        //    std::cout << "at end of del_max , pq is: " << pq_ << "\n";
+        return maximum;
     }
-private:
-    
-    void resize(int capacity) {
-        //assert capacity > n;
-        T* temp = new T[capacity];
-        for (int i = 1; i <= n; i++) {
-            temp[i] = pq[i];
-        }
-        pq = temp;
-    }
-
-    void swim(int k) {
+    void swim(size_t k) {
         while (k > 1 && less(k / 2, k)) {
             exchange(k, k / 2);
-            k = k / 2;
+            k /= 2;
         }
     }
-
-    void sink(int k) {
-        while (2 * k <= n) {
-            int j = 2 * k;
-            if (j < n && less(j, j + 1)) j++;
-            if (!less(k, j)) break;
-            exchange(k, j);
-            k = j;
+    void sink(size_t k) {
+        size_t n = size();
+        ​
+            while (2 * k <= n) {
+                size_t j = 2 * k;
+                if (j < n && less(j, j + 1)) { ++j; }
+                if (!less(k, j)) { break; }
+                ​
+                    exchange(k, j);
+                k = j;
+            }
+    }
+    friend std::ostream& operator<<(std::ostream& os, const max_pq_heap& maxpq) {
+        if (maxpq.empty()) { return os << "max_pq_heap is empty\n"; }
+        return os << maxpq.pq_ << "\n";
+    }
+    ​
+        static void test_initializer_list(const std::initializer_list<t>& li,
+            const comparator<std::string>& compar = fwd_comparator<std::string>()) {
+        std::cout << "\n//======================================================\ntesting max_pq_heap with alphabetical std::initializer_list...\n";
+        max_pq_heap<std::string> pqheap(li, compar);
+        while (!pqheap.empty()) {
+            std::cout << pqheap.del_max() << " ";
         }
     }
-
-    bool less(int i, int j) {
-        if (comp == NULL) {
-            return ((comparator<T>) pq[i]).compare(pq[i]) < 0;
+    static void test_file(const std::string& filename,
+        const comparator<std::string>& compar = fwd_comparator<std::string>()) {
+        std::cout << "\n//======================================================\ntesting max_pq_heap with filename: '" << filename << "'...\n";
+        ​
+            max_pq_heap<std::string> pqheap(compar);
+        std::string s;
+        std::ifstream ifs(filename);
+        if (!ifs.is_open()) {
+            std::cerr << "could not open file: '" << filename << "'\n";
+            throw new std::invalid_argument("invalid filename\n");
         }
-        else {
-            return comp.compare(pq[i], pq[j]) < 0;
+        ​
+            while (ifs >> s) {
+                if (s != "-") {
+                    pqheap.insert(s);
+                }
+                else {
+                    std::cout << pqheap.del_max() << " ";
+                }
+            }
+        std::cout << "\t(" << pqheap.size() << " left on the heap)\n\n";
+        ifs.close();
+    }
+    ​
+        ​
+private:
+    static const size_t min_capacity_;
+    void exchange(size_t i, size_t j) {
+        t temp = pq_[i];
+        pq_[i] = pq_[j];
+        pq_[j] = temp;
+    }
+    bool less(size_t i, size_t j) {
+        return ::less(pq_[i], pq_[j], comp);
+    }
+        bool is_max_heap() const {
+        size_t n = size();
+        for (size_t i = 0; i < n; ++i) {
+            if (pq_[i] == t()) { return false; }
         }
-    }
-
-    void exchange(int i, int j) {
-        T swap = pq[i];
-        pq[i] = pq[j];
-        pq[j] = swap;
-    }
-
-    bool isMaxHeap() {
-        for (int i = 1; i <= n; i++) {
-            if (pq[i] == NULL) return false;
+        for (size_t i = n + 1; i < size(); ++i) {
+            if (pq_[i] != t()) { return false; }
         }
-        for (int i = n + 1; i < pq.size(); i++) {
-            if (pq[i] != NULL) return false;
-        }
-        if (pq[0] != NULL) return false;
-        return isMaxHeapOrdered(1);
+        if (pq_[0] != t()) { return false; }
+        return is_max_heap_ordered(1);
     }
-
-    bool isMaxHeapOrdered(int k) {
-        if (k > n) return true;
-        int left = 2 * k;
-        int right = 2 * k + 1;
-        if (left <= n && less(k, left)) return false;
-        if (right <= n && less(k, right)) return false;
-        return isMaxHeapOrdered(left) && isMaxHeapOrdered(right);
+    ​
+        bool is_max_heap_ordered(size_t k) {
+        size_t n = size();
+        if (k > n) { return true; }
+        size_t left = 2 * k;
+        size_t right = left + 1;
+        ​
+            if (left <= n && less(k, left)) { return false; }
+        if (right <= n && less(k, right)) { return false; }
+        ​
+            return is_max_heap_ordered(left) && is_max_heap_ordered(right);
     }
-
-    array_<T> pq;
-    const comparator<T>& comp;
-    static const int MIN_CAPACITY_ = 10;
-    int n = pq.size();
+    ​
+private:
+    array_<t> pq_;                // uses expandable array from array.h, not std::array<t>
+    const comparator<t>& comp;
 };
-
-#endif
+#endif /* max_pq_heap_h */
